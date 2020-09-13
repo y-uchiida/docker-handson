@@ -1,0 +1,44 @@
+# docker-compose.yml
+# refer to following handson:
+# https://qiita.com/tomokei5634/items/75d2501cfb968d0cfab5
+
+version: '3.1'
+
+# services に記載された内容に沿って、コンテナが生成される
+services:
+
+  #ymlファイルなので、インデントで階層構造を表現
+  mysql: # mysqlのコンテナ(サービス)で使用する設定
+    image: mysql:5.7 #使用するイメージ名とタグ名
+    volumes: # 同期するディレクトリを指定する
+      - ./mysql:/var/lib/mysql #[ホスト側]:[コンテナ側] の順でディレクトリを記載
+    restart: always # <- ホストOSの起動時にコンテナを起動する
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql_passwd
+      MYSQL_DATABASE: wordpress_db
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wpuser_passwd
+
+  wordpress: # wordpressのコンテナ(サービス)で使用する設定
+    image: wordpress:latest #使用するイメージ名
+    volumes:
+      - ./wordpress/html:/var/www/html # htmlファイルを格納するディレクトリを同期
+      - ./php/php.ini:/usr/local/etc/php/conf.d/php.ini # phpの設定ファイルを同期
+    restart: always
+    depends_on: # サービスの依存関係を設定
+      - mysql # mysqlのコンテナ(サービス)に依存していることを設定
+    ports: # ポートフォワードの設定
+      - "8080:80" # [ホスト側ポート]:[コンテナ側ポート]
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306 # サービス「mysql」の3306ポートに接続するように明記
+      WORDPRESS_DB_NAME: wordpress_db # 「mysql」サービスで指定した「MSQL_DATABASE」と同じ文字列に設定
+      WORDPRESS_DB_USER: wp_user # 「mysql」サービスで指定した「MYSQL_USER」と同じ文字列に設定
+      WORDPRESS_DB_PASSWORD: wpuser_passwd # 「mysql」サービスで指定した「MYSQL_PASSWORD」と同じ文字列に設定
+
+  phpmyadmin: # phpmyadminのコンテナ(サービス)で使用する設定
+    image: phpmyadmin/phpmyadmin:latest
+    restart: always
+    depends_on:
+      - mysql
+    ports:
+      - "8888:80"
